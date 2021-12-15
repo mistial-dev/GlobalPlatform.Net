@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Security.Cryptography;
 
 namespace globalplatform.net;
@@ -94,6 +95,30 @@ public class CryptoUtil
         if (paddedData.Length - data.Length > 1)
             Array.Clear(paddedData, data.Length + 1, padLength - 1);
         return paddedData;
+    }
+    
+    /// <summary>
+    ///     Applies AES Padding according to following rules:
+    ///     * Append an '80' to the right of the data block.
+    ///     * If the resultant data block length is a multiple of 16, no further padding is required.
+    ///     * Append binary zeroes to the right of the data block until the data block length is a multiple of 16
+    ///     See Global Platform 2.3.1 Card Spec Section B.2.3
+    /// </summary>
+    /// <param name="data">Data to Pad</param>
+    /// <returns>AES Padded data</returns>
+    public static byte[] AESPad(byte[] data)
+    {
+        // Determine the length of the padding
+        var paddingLength = (16 - (data.Length + 1) % 16) % 16;
+
+        // Zeroize the byte array
+        var padded = Enumerable.Repeat((byte) 0x00, data.Length + 1 + paddingLength).ToArray();
+
+        // Copy the data to the byte array
+        Array.Copy(data, padded, data.Length);
+        padded[data.Length] = 0x80;
+
+        return padded;
     }
 
     /// <summary>

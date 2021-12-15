@@ -6,29 +6,29 @@
         <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="LiquidTestReports.Markdown" Version="1.0.9"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0"/>
-        <PackageReference Include="NUnit" Version="3.13.2"/>
-        <PackageReference Include="NUnit3TestAdapter" Version="4.0.0"/>
-        <PackageReference Include="coverlet.collector" Version="3.1.0"/>
+        <PackageReference Include="LiquidTestReports.Markdown" Version="1.0.9" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+        <PackageReference Include="NUnit" Version="3.13.2" />
+        <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
+        <PackageReference Include="coverlet.collector" Version="3.1.0" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\globalplatform.net\globalplatform.net.csproj"/>
+        <ProjectReference Include="..\globalplatform.net\globalplatform.net.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <Compile Remove="TestResults\**"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <EmbeddedResource Remove="TestResults\**"/>
+        <Compile Remove="TestResults\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="TestResults\**"/>
+        <EmbeddedResource Remove="TestResults\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="TestResults\**" />
     </ItemGroup>
 
     <Target Name="Clean">
-        <RemoveDir Directories="bin;obj"/>
-        <DeleteFiles Files="TestResults/*"/>
+        <RemoveDir Directories="bin;obj" />
+        <DeleteFiles Files="TestResults/*" />
     </Target>
 </Project>

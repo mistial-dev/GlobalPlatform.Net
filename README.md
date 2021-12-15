@@ -1,8 +1,8 @@
 globalplatform.net
 ==================
-An open source implementation for Global Platform specification for .Net Framework.
+An open source implementation for Global Platform specification for .Net Framework.  Supports SCP01, SCP02, and SCP03.
 
-*globalplatform.net* generates APDU messages but does not send commands directly to the card. It hands the message to developer. Therfore you may use this library to setup a secure channel over TCP/IP.
+*globalplatform.net* generates APDU messages but does not send commands directly to the card. It hands the message to developer. Therefore you may use this library to setup a secure channel over TCP/IP.
 
 The following code snippet shows how to use it:
 

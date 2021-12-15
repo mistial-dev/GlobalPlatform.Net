@@ -45,9 +45,14 @@ public class GlobalPlatform
     public const int SCP_01 = 0x01;
 
     /// <summary>
-    ///     SCP '01' Secure channel protocol identifier
+    ///     SCP '02' Secure channel protocol identifier
     /// </summary>
     public const int SCP_02 = 0x02;
+    
+    /// <summary>
+    ///     SCP '03' Secure channel protocol identifier
+    /// </summary>
+    public const int SCP_03 = 0x03;
 
     /// <summary>
     ///     Card default secure channel implementation option
@@ -198,14 +203,14 @@ public class GlobalPlatform
 
         // Todo: consider implicit case
 
-        // Derivate session MAC key
+        // Derive session MAC key
         Array.Copy(CONSTANT_MAC_0101, 0, derivationData, 0, 2);
         sessionKeySet.MacKey = new Key(
             CryptoUtil.TripleDESCBC(
                 new Key(mStaticKeys.MacKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK, derivationData,
                 CryptoUtil.MODE_ENCRYPT));
 
-        // Derivate session R-MAC key
+        // Derive session R-MAC key
         // To build R-MAC key static MAC key is used.
         Array.Copy(CONSTANT_RMAC_0102, 0, derivationData, 0, 2);
         sessionKeySet.RmacKey = new Key(
@@ -213,14 +218,14 @@ public class GlobalPlatform
                 new Key(mStaticKeys.MacKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK, derivationData,
                 CryptoUtil.MODE_ENCRYPT));
 
-        // Derivate session ENC key
+        // Derive session ENC key
         Array.Copy(CONSTANT_ENC_0182, 0, derivationData, 0, 2);
         sessionKeySet.EncKey = new Key(
             CryptoUtil.TripleDESCBC(
                 new Key(mStaticKeys.EncKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK, derivationData,
                 CryptoUtil.MODE_ENCRYPT));
 
-        // Derivate session KEK key
+        // Derive session KEK key
         Array.Copy(CONSTANT_DEK_0181, 0, derivationData, 0, 2);
         sessionKeySet.KekKey = new Key(
             CryptoUtil.TripleDESCBC(
@@ -291,10 +296,10 @@ public class GlobalPlatform
         int scpImplementationOption)
     {
         // Validate Secure Channel Identifier
-        if (scpIdentifier != SCP_01 && scpIdentifier != SCP_02 && scpIdentifier != SCP_ANY)
+        if (scpIdentifier != SCP_01 && scpIdentifier != SCP_02 && scpIdentifier != SCP_03 && scpIdentifier != SCP_ANY)
             throw new Exception(
-                "Invalid secure channel protocol identifier. Currently SCP 01 (0x01) and SCP 02 (0x02) are valid." +
-                " See Global Platform 2.1.1 Card Spec section 8.6.");
+                "Invalid secure channel protocol identifier. Currently SCP 01 (0x01), SCP 02 (0x02), and SCP 03 (0x03) are valid." +
+                " See Global Platform Card Specification 2.3");
 
         //Validate Secure Channel Implementation Option
         if (scpImplementationOption == IMPL_OPTION_ANY && scpIdentifier != SCP_ANY)
