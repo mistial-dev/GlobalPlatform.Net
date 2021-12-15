@@ -1,15 +1,13 @@
-﻿using System;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
-namespace globalplatform.net.test
+namespace globalplatform.net.test;
+
+[TestFixture]
+public class Tests
 {
-    [TestFixture]
-    public class Tests
+    [Test]
+    public void Test1()
     {
-        [Test]
-        public void Test1()
-        {
-            Assert.True(true);
-        }
+        Assert.True(true);
     }
 }
