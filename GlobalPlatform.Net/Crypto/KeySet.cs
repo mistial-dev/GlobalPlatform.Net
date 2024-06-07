@@ -1,4 +1,6 @@
-﻿namespace globalplatform.net;
+using System;
+
+namespace GlobalPlatform.Net.Crypto;
 
 /// <summary>
 ///     A set of keys associated with a card or a secure channel
@@ -28,30 +30,24 @@ public class KeySet
     /// </summary>
     /// <param name="keyType">
     ///     Key type:
-    ///     * <see cref="Key.KEY_TYPE_ENC" />
-    ///     * <see cref="Key.KEY_TYPE_MAC" />
-    ///     * <see cref="Key.KEY_TYPE_RMAC" />
-    ///     * <see cref="Key.KEY_TYPE_KEK" />
+    ///     * <see cref="SymmetricKey.KEY_TYPE_ENC" />
+    ///     * <see cref="SymmetricKey.KEY_TYPE_MAC" />
+    ///     * <see cref="SymmetricKey.KEY_TYPE_RMAC" />
+    ///     * <see cref="SymmetricKey.KEY_TYPE_KEK" />
     /// </param>
     /// <returns>Retrieved key</returns>
-    public Key RetrieveKey(int keyType)
+    /// <exception cref="ArgumentException">If key type is invalid</exception>
+    public SymmetricKey RetrieveKey(int keyType)
     {
-        Key key = null;
-        switch (keyType)
+        var key = keyType switch
         {
-            case Key.KEY_TYPE_ENC:
-                key = EncKey;
-                break;
-            case Key.KEY_TYPE_MAC:
-                key = MacKey;
-                break;
-            case Key.KEY_TYPE_RMAC:
-                key = RmacKey;
-                break;
-            case Key.KEY_TYPE_KEK:
-                key = KekKey;
-                break;
-        }
+            SymmetricKey.KEY_TYPE_ENC => EncKey,
+            SymmetricKey.KEY_TYPE_MAC => MacKey,
+            SymmetricKey.KEY_TYPE_RMAC => RmacKey,
+            SymmetricKey.KEY_TYPE_KEK => KekKey,
+            SymmetricKey.KEY_TYPE_DEK => KekKey,
+            _ => throw new ArgumentException("Invalid key type")
+        };
 
         return key;
     }
@@ -77,27 +73,41 @@ public class KeySet
     /// <summary>
     ///     ENC Key
     /// </summary>
-    public Key EncKey { get; set; }
+    public SymmetricKey EncKey { get; set; }
 
     /// <summary>
     ///     C-MAC Key
     /// </summary>
-    public Key MacKey { get; set; }
+    public SymmetricKey MacKey { get; set; }
 
     /// <summary>
     ///     R-MAC Key
     /// </summary>
-    public Key RmacKey { get; set; }
+    public SymmetricKey RmacKey { get; set; }
 
     /// <summary>
     ///     KEK Key
     /// </summary>
-    public Key KekKey { get; set; }
+    public SymmetricKey KekKey { get; set; }
+    
+    /// <summary>
+    /// DEK Key is an alias for KEK Key (SCP03)
+    /// </summary>
+    public SymmetricKey DekKey
+    {
+        get { return KekKey; }
+        set { KekKey = value;}
+    }
 
     /// <summary>
     ///     Key Identifier which identifies each key within an on-card entity.
     /// </summary>
     public int KeyId { get; }
+
+    /// <summary>
+    /// Key Algorithm (default is DES)
+    /// </summary>
+    public KeyAlgorithm Algorithm { get; set; } = KeyAlgorithm.DES;
 
     #endregion
 }

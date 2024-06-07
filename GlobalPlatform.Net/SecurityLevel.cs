@@ -1,4 +1,4 @@
-﻿namespace globalplatform.net;
+﻿namespace GlobalPlatform.Net;
 
 public class SecurityLevel
 {
@@ -25,4 +25,9 @@ public class SecurityLevel
     public const int R_MAC = 0x10;
 
     #endregion
+
+    /// <summary>
+    ///     R-DECRYPTION
+    /// </summary>
+    public const int R_ENCRYPTION = 0x20;
 }

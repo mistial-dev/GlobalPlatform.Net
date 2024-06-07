@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "globalplatform.net", "globalplatform.net\globalplatform.net.csproj", "{F0DDA92E-B626-436A-92C4-D0075EBCADBB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GlobalPlatform.Net", "GlobalPlatform.Net\GlobalPlatform.Net.csproj", "{F0DDA92E-B626-436A-92C4-D0075EBCADBB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "globalplatform.net.test", "globalplatform.net.test\globalplatform.net.test.csproj", "{30C337AD-84CF-4331-8EE5-AB616CE98CFE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Globalplatform.Net.Tests", "Globalplatform.Net.Tests\Globalplatform.Net.Tests.csproj", "{30C337AD-84CF-4331-8EE5-AB616CE98CFE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

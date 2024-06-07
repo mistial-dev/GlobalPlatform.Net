@@ -1,8 +1,9 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using GlobalPlatform.Net.Crypto;
 
-namespace globalplatform.net;
+namespace GlobalPlatform.Net;
 
 public class SecureChannel
 {
@@ -12,10 +13,10 @@ public class SecureChannel
     {
         switch (scpImplementationOption)
         {
-            case GlobalPlatform.IMPL_OPTION_I_1B:
-            case GlobalPlatform.IMPL_OPTION_I_1A:
-            case GlobalPlatform.IMPL_OPTION_I_15:
-            case GlobalPlatform.IMPL_OPTION_I_14:
+            case Session.IMPL_OPTION_I_1B:
+            case Session.IMPL_OPTION_I_1A:
+            case Session.IMPL_OPTION_I_15:
+            case Session.IMPL_OPTION_I_14:
                 mICVEncryption = true;
                 break;
             default:
@@ -25,10 +26,10 @@ public class SecureChannel
 
         switch (scpImplementationOption)
         {
-            case GlobalPlatform.IMPL_OPTION_I_0A:
-            case GlobalPlatform.IMPL_OPTION_I_0B:
-            case GlobalPlatform.IMPL_OPTION_I_1A:
-            case GlobalPlatform.IMPL_OPTION_I_1B:
+            case Session.IMPL_OPTION_I_0A:
+            case Session.IMPL_OPTION_I_0B:
+            case Session.IMPL_OPTION_I_1A:
+            case Session.IMPL_OPTION_I_1B:
                 mApplyToModifiedAPDU = false;
                 break;
             default:
@@ -56,7 +57,7 @@ public class SecureChannel
     #region Public Properties
 
     /// <summary>
-    ///     Security level of establisged secure channel
+    ///     Security level of established secure channel
     /// </summary>
     public int SecurityLevel
     {
@@ -66,7 +67,7 @@ public class SecureChannel
             if (!mSecurityLevelSet)
             {
                 mSecurityLevel = value;
-                if ((mSecurityLevel & net.SecurityLevel.R_MAC) != 0)
+                if ((mSecurityLevel & Net.SecurityLevel.R_MAC) != 0)
                     Array.Copy(mICV, mRICV, 8);
                 mSecurityLevelSet = true;
             }
@@ -83,6 +84,8 @@ public class SecureChannel
     ///     Secure channel session key set
     /// </summary>
     public KeySet SessionKeys { get; }
+    
+    public LogicalChannel LogicalChannel { get; set; }
 
     #endregion
 
@@ -94,8 +97,8 @@ public class SecureChannel
     /// <param name="sessionKeys">Session Keys</param>
     /// <param name="securityLevel">Security Level</param>
     /// <param name="scpIdentifier">
-    ///     Secure Channel Identifer: either <see cref="GlobalPlatform.SCP_01" /> or
-    ///     <see cref="GlobalPlatform.SCP_02" />.
+    ///     Secure Channel Identifer: either <see cref="Session.SCP_01" /> or
+    ///     <see cref="Session.SCP_02" />.
     /// </param>
     /// <param name="scpImplementationOption">Secure Channel Implementation Option: See GlobalPlatform.IMPL_OPTION_* </param>
     /// <param name="icv">Initial Chaining Vector</param>
@@ -116,7 +119,7 @@ public class SecureChannel
     public CommandAPDU wrap(CommandAPDU command)
     {
         // Apply R-MAC
-        if ((mSecurityLevel & net.SecurityLevel.R_MAC) != 0)
+        if ((mSecurityLevel & Net.SecurityLevel.R_MAC) != 0)
         {
             if (mRMACStream != null)
                 throw new Exception(
@@ -136,7 +139,7 @@ public class SecureChannel
             }
         }
 
-        if ((mSecurityLevel & (net.SecurityLevel.C_MAC | net.SecurityLevel.C_DECRYPTION)) == 0)
+        if ((mSecurityLevel & (Net.SecurityLevel.C_MAC | Net.SecurityLevel.C_DECRYPTION)) == 0)
             return command;
 
         var secureCLA = command.CLA;
@@ -146,15 +149,15 @@ public class SecureChannel
         var commandStream = new MemoryStream();
 
         var maxCommandSize = 255;
-        if ((mSecurityLevel & net.SecurityLevel.C_MAC) != 0)
+        if ((mSecurityLevel & Net.SecurityLevel.C_MAC) != 0)
             maxCommandSize -= 8;
-        if ((mSecurityLevel & net.SecurityLevel.C_DECRYPTION) != 0)
+        if ((mSecurityLevel & Net.SecurityLevel.C_DECRYPTION) != 0)
             maxCommandSize -= 8;
         if (command.LC > maxCommandSize)
             throw new Exception(
                 "APDU command too large. Max command length = 255 - 8(for C-MAC if present) - 8(for C-DECRYTPION padding if present).");
 
-        if ((mSecurityLevel & net.SecurityLevel.C_MAC) != 0)
+        if ((mSecurityLevel & Net.SecurityLevel.C_MAC) != 0)
         {
             if (mFirstCommandInChain)
             {
@@ -162,14 +165,14 @@ public class SecureChannel
             }
             else if (mICVEncryption)
             {
-                if (mSCPIdentifier == GlobalPlatform.SCP_01)
+                if (mSCPIdentifier == Session.SCP_01)
                 {
                     mICV = CryptoUtil.TripleDESECB(
-                        new Key(SessionKeys.MacKey.BuildTripleDesKey()), mICV, CryptoUtil.MODE_ENCRYPT);
+                        new DesKey(SessionKeys.MacKey.BuildTripleDesKey()), mICV, CryptoUtil.MODE_ENCRYPT);
                 }
                 else
                 {
-                    mICV = CryptoUtil.DESECB(new Key(SessionKeys.MacKey.BuildDesKey()), mICV, CryptoUtil.MODE_ENCRYPT);
+                    mICV = CryptoUtil.DESECB(new DesKey(SessionKeys.MacKey.BuildDesKey()), mICV, CryptoUtil.MODE_ENCRYPT);
                 }
             } // If ICV Encryption
 
@@ -185,7 +188,7 @@ public class SecureChannel
             commandStream.WriteByte((byte) command.P2);
             commandStream.WriteByte((byte) wrappedDataSize);
             commandStream.Write(command.Data, 0, command.Data.Length);
-            if (mSCPIdentifier == GlobalPlatform.SCP_01)
+            if (mSCPIdentifier == Session.SCP_01)
             {
                 mICV = CryptoUtil.FullTripleDESMAC(
                     SessionKeys.MacKey, mICV, CryptoUtil.DESPad(commandStream.ToArray()));
@@ -206,9 +209,9 @@ public class SecureChannel
             commandStream = new MemoryStream();
         } // If C-MAC
 
-        if ((mSecurityLevel & net.SecurityLevel.C_DECRYPTION) != 0 && command.LC > 0)
+        if ((mSecurityLevel & Net.SecurityLevel.C_DECRYPTION) != 0 && command.LC > 0)
         {
-            if (mSCPIdentifier == GlobalPlatform.SCP_01)
+            if (mSCPIdentifier == Session.SCP_01)
             {
                 if ((command.LC + 1) % 8 != 0)
                 {
@@ -232,7 +235,7 @@ public class SecureChannel
 
             wrappedDataSize += (int) (commandStream.Length - command.Data.Length);
             wrappedData = CryptoUtil.TripleDESCBC(
-                new Key(SessionKeys.EncKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK,
+                new DesKey(SessionKeys.EncKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK,
                 commandStream.ToArray(), CryptoUtil.MODE_ENCRYPT);
             commandStream = new MemoryStream();
         } // If C-DECRYPTION
@@ -247,7 +250,7 @@ public class SecureChannel
             commandStream.Write(wrappedData, 0, wrappedData.Length);
         }
 
-        if ((mSecurityLevel & net.SecurityLevel.C_MAC) != 0)
+        if ((mSecurityLevel & Net.SecurityLevel.C_MAC) != 0)
             commandStream.Write(mICV, 0, mICV.Length);
         if (command.LE > 0)
             commandStream.WriteByte((byte) command.LE);
@@ -257,7 +260,7 @@ public class SecureChannel
 
     public ResponseAPDU unwrap(ResponseAPDU response)
     {
-        if ((mSecurityLevel & net.SecurityLevel.R_MAC) != 0)
+        if ((mSecurityLevel & Net.SecurityLevel.R_MAC) != 0)
         {
             if (response.Data.Length < 8)
                 throw new Exception("Response data length must be at least 8 bytes.");
@@ -289,3 +292,4 @@ public class SecureChannel
 
     #endregion
 }
+

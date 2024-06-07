@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace globalplatform.net;
+namespace GlobalPlatform.Net;
 
 /// <summary>
-///     Represents repsonse APDU
+///     Represents response APDU
 /// </summary>
 public class ResponseAPDU
 {
@@ -80,11 +80,19 @@ public class ResponseAPDU
     {
         if (response.Length < 2)
             throw new Exception("Response APDU must be 2 bytes or more.");
-        SW1 = response[response.Length - 2];
-        SW2 = response[response.Length - 1];
+        SW1 = response[^2];
+        SW2 = response[^1];
         Data = new byte[response.Length - 2];
         if (Data.Length > 0)
             Array.Copy(response, 0, Data, 0, Data.Length);
+    }
+
+    /// <summary>
+    /// Constructs a ResponseAPDU from raw response in hex format.
+    /// </summary>
+    /// <param name="response"></param>
+    public ResponseAPDU(string response) : this (Convert.FromHexString(response))
+    {
     }
 
     #endregion

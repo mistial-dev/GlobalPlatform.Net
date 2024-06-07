@@ -2,10 +2,12 @@
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>Library</OutputType>
-        <RootNamespace>globalplatform.net</RootNamespace>
-        <AssemblyName>globalplatform.net</AssemblyName>
-        <TargetFramework>net6.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+        <LangVersion>default</LangVersion>
+        <PackageId>GlobalPlatform.Net</PackageId>
+        <RootNamespace>GlobalPlatform.Net</RootNamespace>
+        <ImplicitUsings>false</ImplicitUsings>
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="System"/>
@@ -17,6 +19,6 @@
         <Reference Include="System.Xml"/>
     </ItemGroup>
     <ItemGroup>
-        <Folder Include="packages"/>
+      <PackageReference Include="JetBrains.Annotations" Version="2023.3.0" />
     </ItemGroup>
 </Project>

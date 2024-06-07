@@ -1,6 +1,31 @@
-globalplatform.net/bin/
-globalplatform.net/obj/
-globalplatform.net/packages/
-globalplatform.net.test/bin/
-globalplatform.net.test/obj/
-globalplatform.net.test/packages/
+# Jetbrains
+**/.idea/**/workspace.xml
+**/.idea/**/tasks.xml
+**/.idea/shelf/*
+**/.idea/dictionaries
+**/.idea/httpRequests/
+
+**/.idea/**/dataSources/
+**/.idea/**/dataSources.ids
+**/.idea/**/dataSources.xml
+**/.idea/**/dataSources.local.xml
+**/.idea/**/sqlDataSources.xml
+**/.idea/**/dynamic.xml
+
+**/.idea/**/*.iml
+**/.idea/**/contentModel.xml
+**/.idea/**/modules.xml
+
+# Visual Studio
+*.suo
+*.user
+.vs/
+[Bb]in/
+[Oo]bj/
+_UpgradeReport_Files/
+[Pp]ackages/
+
+# Misc files
+Thumbs.db
+Desktop.ini
+.DS_Store

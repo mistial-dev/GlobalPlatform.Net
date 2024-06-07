@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace globalplatform.net;
+namespace GlobalPlatform.Net.Crypto;
 
 /// <summary>
 ///     Represents a command APDU.

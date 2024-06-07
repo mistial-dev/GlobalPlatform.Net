@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Security.Cryptography;
 
-namespace globalplatform.net;
+namespace GlobalPlatform.Net.Crypto;
 
-public class CryptoUtil
+public static class CryptoUtil
 {
     #region Constant Fields
 
@@ -38,9 +38,9 @@ public class CryptoUtil
     /// <param name="iv">Initial Vector</param>
     /// <param name="data">Data to MAC</param>
     /// <returns>Full triple DES MAC</returns>
-    public static byte[] FullTripleDESMAC(Key key, byte[] iv, byte[] data)
+    public static byte[] FullTripleDESMAC(SymmetricKey key, byte[] iv, byte[] data)
     {
-        var enc = TripleDESCBC(new Key(key.BuildTripleDesKey()), iv, data, MODE_ENCRYPT);
+        var enc = TripleDESCBC(new DesKey(key.BuildTripleDesKey()), iv, data, MODE_ENCRYPT);
         var result = new byte[8];
         Array.Copy(enc, enc.Length - 8, result, 0, 8);
         return result;
@@ -54,22 +54,22 @@ public class CryptoUtil
     /// <param name="iv">Initial Vector</param>
     /// <param name="data">Data to MAC</param>
     /// <returns>Retial MAC</returns>
-    public static byte[] SingleDESFullTripleDESMAC(Key key, byte[] iv, byte[] data)
+    public static byte[] SingleDESFullTripleDESMAC(SymmetricKey key, byte[] iv, byte[] data)
     {
         byte[] intermeidateResult;
         var result = new byte[8];
         if (data.Length > 8)
         {
             intermeidateResult = DESCBC(
-                new Key(key.BuildDesKey()), iv, SubArray(data, 0, data.Length - 8), MODE_ENCRYPT);
+                new DesKey(key.BuildDesKey()), iv, SubArray(data, 0, data.Length - 8), MODE_ENCRYPT);
             Array.Copy(intermeidateResult, intermeidateResult.Length - 8, result, 0, 8);
             intermeidateResult = TripleDESCBC(
-                new Key(key.BuildTripleDesKey()), result, SubArray(data, data.Length - 8, 8), MODE_ENCRYPT);
+                new DesKey(key.BuildTripleDesKey()), result, SubArray(data, data.Length - 8, 8), MODE_ENCRYPT);
         }
         else
         {
             intermeidateResult = TripleDESCBC(
-                new Key(key.BuildTripleDesKey()), iv, SubArray(data, data.Length - 8, 8), MODE_ENCRYPT);
+                new DesKey(key.BuildTripleDesKey()), iv, SubArray(data, data.Length - 8, 8), MODE_ENCRYPT);
         }
 
         Array.Copy(intermeidateResult, intermeidateResult.Length - 8, result, 0, 8);
@@ -129,7 +129,7 @@ public class CryptoUtil
     /// <param name="data">Data to encrypt or decrypt</param>
     /// <param name="operationMode">Operation mode: either <see cref="MODE_ENCRYPT" /> or <see cref="MODE_DECRYPT" /> </param>
     /// <returns></returns>
-    public static byte[] TripleDESECB(Key key, byte[] data, int operationMode)
+    public static byte[] TripleDESECB(DesKey key, byte[] data, int operationMode)
     {
         byte[] result = null;
         var tdes = new TripleDESCryptoServiceProvider();
@@ -159,7 +159,7 @@ public class CryptoUtil
     /// <param name="data">Data to encrypt or decrypt</param>
     /// <param name="mode">Operation mode: either <see cref="MODE_ENCRYPT" /> or <see cref="MODE_DECRYPT" /> </param>
     /// <returns></returns>
-    public static byte[] TripleDESCBC(Key key, byte[] iv, byte[] data, int operationMode)
+    public static byte[] TripleDESCBC(DesKey key, byte[] iv, byte[] data, int operationMode)
     {
         byte[] result = null;
         var tdes = new TripleDESCryptoServiceProvider();
@@ -189,7 +189,7 @@ public class CryptoUtil
     /// <param name="data">Data to encrypt or decrypt</param>
     /// <param name="operationMode">Operation mode: either <see cref="MODE_ENCRYPT" /> or <see cref="MODE_DECRYPT" /> </param>
     /// <returns></returns>
-    public static byte[] DESECB(Key key, byte[] data, int operationMode)
+    public static byte[] DESECB(DesKey key, byte[] data, int operationMode)
     {
         byte[] result = null;
         var tdes = new DESCryptoServiceProvider();
@@ -219,7 +219,7 @@ public class CryptoUtil
     /// <param name="data">Data to encrypt or decrypt</param>
     /// <param name="mode">Operation mode: either <see cref="MODE_ENCRYPT" /> or <see cref="MODE_DECRYPT" /> </param>
     /// <returns></returns>
-    public static byte[] DESCBC(Key key, byte[] iv, byte[] data, int operationMode)
+    public static byte[] DESCBC(DesKey key, byte[] iv, byte[] data, int operationMode)
     {
         byte[] result = null;
         var tdes = new DESCryptoServiceProvider();

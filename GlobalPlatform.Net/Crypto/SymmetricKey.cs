@@ -1,8 +1,9 @@
-﻿using System;
+using System;
+using JetBrains.Annotations;
 
-namespace globalplatform.net;
+namespace GlobalPlatform.Net.Crypto;
 
-public class Key
+public abstract class SymmetricKey : ISymmetricKey
 {
     #region Constant Fields
 
@@ -10,6 +11,7 @@ public class Key
     public const int KEY_TYPE_MAC = 0x02;
     public const int KEY_TYPE_KEK = 0x03;
     public const int KEY_TYPE_RMAC = 0x04;
+    public const int KEY_TYPE_DEK = 0x05;
 
     #endregion
 
@@ -20,9 +22,16 @@ public class Key
     #region Public Properties
 
     /// <summary>
-    ///     Key value
+    /// Key value getter as a byte array
     /// </summary>
+    [PublicAPI]
     public byte[] Value { get; }
+
+    /// <summary>
+    /// Key value getter as a hex string
+    /// </summary>
+    [PublicAPI]
+    public string HexValue => Convert.ToHexString(Value);
 
     /// <summary>
     ///     Key version
@@ -44,7 +53,8 @@ public class Key
     /// <param name="value">Key value</param>
     /// <param name="keyId">Key Id</param>
     /// <param name="keyVersion">Key Version</param>
-    public Key(byte[] value, int keyId = 0, int keyVersion = 0)
+    [PublicAPI]
+    protected SymmetricKey(byte[] value, int keyId = 0, int keyVersion = 0)
     {
         Value = value;
         KeyId = keyId;
@@ -54,18 +64,14 @@ public class Key
     /// <summary>
     ///     Constructs a key from hex string represntation
     /// </summary>
-    /// <param name="value">Key value</param>
+    /// <param name="hexValue">Key value</param>
     /// <param name="keyId">Key Id</param>
     /// <param name="keyVersion">Key Version</param>
-    public Key(string value, int keyId = 0, int keyVersion = 0)
+    [PublicAPI]
+    protected SymmetricKey(string hexValue, int keyId = 0, int keyVersion = 0)
     {
-        var hex = value;
-        var NumberChars = hex.Length;
-        var bytes = new byte[NumberChars / 2];
-        for (var i = 0; i < NumberChars; i += 2)
-            bytes[i / 2] = Convert.ToByte(hex.Substring(i, 2), 16);
-
-        Value = bytes;
+        // Convert the hex string to a byte array
+        Value = Convert.FromHexString(hexValue);
         KeyId = keyId;
         KeyVersion = keyVersion;
     }
