@@ -89,8 +89,6 @@ public class SecureChannel
 
     #endregion
 
-    #region Constructors
-
     /// <summary>
     ///     Constructs a secure channel
     /// </summary>
@@ -168,11 +166,11 @@ public class SecureChannel
                 if (mSCPIdentifier == Session.SCP_01)
                 {
                     mICV = CryptoUtil.TripleDESECB(
-                        new DesKey(SessionKeys.MacKey.BuildTripleDesKey()), mICV, CryptoUtil.MODE_ENCRYPT);
+                        new DesKey(SessionKeys.MacKey.BuildTripleDesKey()), mICV, CryptoUtil.ModeEncrypt);
                 }
                 else
                 {
-                    mICV = CryptoUtil.DESECB(new DesKey(SessionKeys.MacKey.BuildDesKey()), mICV, CryptoUtil.MODE_ENCRYPT);
+                    mICV = CryptoUtil.DESECB(new DesKey(SessionKeys.MacKey.BuildDesKey()), mICV, CryptoUtil.ModeEncrypt);
                 }
             } // If ICV Encryption
 
@@ -235,8 +233,8 @@ public class SecureChannel
 
             wrappedDataSize += (int) (commandStream.Length - command.Data.Length);
             wrappedData = CryptoUtil.TripleDESCBC(
-                new DesKey(SessionKeys.EncKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK,
-                commandStream.ToArray(), CryptoUtil.MODE_ENCRYPT);
+                new DesKey(SessionKeys.EncKey.BuildTripleDesKey()), CryptoUtil.BinaryZeros8ByteBlock,
+                commandStream.ToArray(), CryptoUtil.ModeEncrypt);
             commandStream = new MemoryStream();
         } // If C-DECRYPTION
 
@@ -289,7 +287,5 @@ public class SecureChannel
 
         return response;
     }
-
-    #endregion
 }
 

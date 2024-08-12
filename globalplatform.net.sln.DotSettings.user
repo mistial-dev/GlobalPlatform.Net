@@ -2,10 +2,17 @@
 	<s:Int64 x:Key="/Default/Environment/Hierarchy/Build/BuildTool/MsbuildVersion/@EntryValue">1114112</s:Int64>
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/CustomBuildToolPath/@EntryValue">/Users/mistial/.dotnet/sdk/6.0.100/MSBuild.dll</s:String>
 	<s:String x:Key="/Default/Environment/Highlighting/HighlightingSourceSnapshotLocation/@EntryValue">/Users/mistial/Library/Caches/JetBrains/Rider2024.1/resharper-host/temp/Rider/vAny/CoverageData/_globalplatform.net.643523964/Snapshot/snapshot.utdcvr</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=ef8ea2c3_002D5d97_002D4ec2_002Da49a_002Dabd9979e6caa/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="TestAesPadding" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=226fc674_002De604_002D40ae_002Da04e_002D8b4f9d2e5584/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="TestScp03" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;TestAncestor&gt;
+    &lt;TestId&gt;NUnit3x::30C337AD-84CF-4331-8EE5-AB616CE98CFE::net6.0::Globalplatform.Net.Tests.Scp03Tests.TestScp03&lt;/TestId&gt;
+  &lt;/TestAncestor&gt;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=ef8ea2c3_002D5d97_002D4ec2_002Da49a_002Dabd9979e6caa/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="TestAesPadding" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;NUnit3x::30C337AD-84CF-4331-8EE5-AB616CE98CFE::net6.0::Globalplatform.Net.Tests.Crypto.AesKeyTests&lt;/TestId&gt;
     &lt;TestId&gt;NUnit3x::30C337AD-84CF-4331-8EE5-AB616CE98CFE::net6.0::Globalplatform.Net.Tests.Scp03Test.TestScp03&lt;/TestId&gt;
     &lt;TestId&gt;NUnit3x::30C337AD-84CF-4331-8EE5-AB616CE98CFE::net6.0::Globalplatform.Net.Tests.SessionTests.TestHostChallenge&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::30C337AD-84CF-4331-8EE5-AB616CE98CFE::net6.0::Globalplatform.Net.Tests.Scp03Test&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::30C337AD-84CF-4331-8EE5-AB616CE98CFE::net6.0::Globalplatform.Net.Tests.Scp03Tests.TestScp03&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

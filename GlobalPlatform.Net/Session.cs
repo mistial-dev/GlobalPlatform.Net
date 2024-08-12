@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using GlobalPlatform.Net.Crypto;
 using JetBrains.Annotations;
+using log4net;
 
 namespace GlobalPlatform.Net;
 
@@ -14,18 +15,13 @@ namespace GlobalPlatform.Net;
 /// </summary>
 public class Session
 {
-    #region Public Properties
-
+#if DEBUG
     /// <summary>
-    ///     Secure Channel
+    /// Logger
     /// </summary>
-    [PublicAPI]
-    public SecureChannel SecureChannel { get; private set; }
-
-    #endregion
-
-    #region Constant Fields
-
+    private static readonly ILog Log = LogManager.GetLogger(typeof(Session));
+#endif
+    
     /// <summary>
     ///     Global Platform CLA
     /// </summary>
@@ -35,7 +31,7 @@ public class Session
     ///     Global Platform secure messaging CLA
     /// </summary>
     public const byte CLA_SECURE_GP = 0x84;
-    
+
     /// <summary>
     ///     Card default secure channel protocol.  0x00 is valid for SCP03, so use a flag instead.
     /// </summary>
@@ -50,7 +46,7 @@ public class Session
     ///     SCP '02' Secure channel protocol identifier
     /// </summary>
     public const int SCP_02 = 0x02;
-    
+
     /// <summary>
     ///     SCP '03' Secure channel protocol identifier
     /// </summary>
@@ -119,7 +115,7 @@ public class Session
     /// "i" = 00 (SCP03): Random Card Challenge, no R-MAC/R-ENCRYPTION Support
     /// </summary>
     public const int IMPL_OPTION_I_00 = 0x00;
-    
+
     // IMPL_OPTION_I_00 or IMPL_OPTION_I_10 or IMPL_OPTION_I_20 or IMPL_OPTION_I_30 or IMPL_OPTION_I_70
 
     /// <summary>
@@ -171,7 +167,61 @@ public class Session
     ///     Format 2 for PUT Key command. It is reserved for future use.
     /// </summary>
     public const int KEY_FORMAT_2 = 0x02;
+
+    /// <summary>
+    /// Offset for the Key Version Number in the INITIALIZE UPDATE command
+    /// </summary>
+    private const int OFFSET_KVN = 0x0A;
+
+    /// <summary>
+    /// Offset for the SCP ID in the INITIALIZE UPDATE command
+    /// </summary>
+    private const int OFFSET_SCP_ID = 0x0B;
     
+    /// <summary>
+    /// Offset for the Key Information in the INITIALIZE UPDATE response
+    /// </summary>
+    private const int OFFSET_KEY_INFO_SCP_VERSION = 0x01;
+
+
+    /// <summary>
+    /// Offset for the SCP Implementation Option in the INITIALIZE UPDATE command
+    /// </summary>
+    private const int OFFSET_IMPLEMENTATION_SCP03 = 0x0C;
+    
+    /// <summary>
+    /// Offset for the SCP Implementation Option in the INITIALIZE UPDATE response
+    /// </summary>
+    private const int OFFSET_KEY_INFO_IMPL = 0x02;
+
+    private static readonly byte[] ConstantMac0101 = [0x01, 0x01];
+    private static readonly byte[] ConstantRMac0102 = [0x01, 0x02];
+    private static readonly byte[] ConstantEnc0182 = [0x01, 0x82];
+    private static readonly byte[] ConstantDek0181 = [0x01, 0x81];
+
+    private byte[]? _hostChallenge;
+
+    private byte[] _InitUpdateResponse = [];
+
+    private int mSCPIdentifier;
+
+    private int mSCPImplementationOption;
+
+    private int mSecurityLevel;
+
+    private KeySet mSessionKeys;
+
+    /// <summary>
+    /// Static keys for the secure channel
+    /// </summary>
+    private KeySet mStaticKeys;
+
+    /// <summary>
+    ///     Secure Channel
+    /// </summary>
+    [PublicAPI]
+    public SecureChannel SecureChannel { get; private set; }
+
     /// <summary>
     /// Which logical channel to use
     /// </summary>
@@ -195,54 +245,17 @@ public class Session
         }
     }
 
-    #endregion
-
-    #region Private Fields
-
-    private static readonly byte[] CONSTANT_MAC_0101 = {0x01, 0x01};
-    private static readonly byte[] CONSTANT_RMAC_0102 = {0x01, 0x02};
-    private static readonly byte[] CONSTANT_ENC_0182 = {0x01, 0x82};
-    private static readonly byte[] CONSTANT_DEK_0181 = {0x01, 0x81};
-
-    private KeySet mSessionKeys;
-
-    private KeySet mStaticKeys;
-
-    private int mSecurityLevel;
-
-    private int mSCPIdentifier;
-
-    private int mSCPImplementationOption;
-
-    private byte[] _InitUpdateResponse = [];
-    
-    private byte[]? _hostChallenge;
-
-    /// <summary>
-    /// Offset for the Key Version Number in the INITIALIZE UPDATE command
-    /// </summary>
-    private const int OFFSET_KVN = 10;
-    
-    /// <summary>
-    /// Offset for the SCP ID in the INITIALIZE UPDATE command
-    /// </summary>
-    private const int OFFSET_SCP_ID = 11;
-    
-    /// <summary>
-    /// Offset for the SCP Implementation Option in the INITIALIZE UPDATE command
-    /// </summary>
-    private const int OFFSET_IMPLEMENTATION_SCP03 = 12;
-
-    #endregion
-
-    #region Private Methods
-
     private static void CheckResponse(int sw1, int sw2, string message)
     {
         if (sw1 != 0x90 && sw2 != 0x00)
             throw new Exception(message);
     }
 
+    /// <summary>
+    /// Generate the required session keys for SCP01
+    /// </summary>
+    /// <param name="cardResponse"></param>
+    /// <returns></returns>
     private KeySet GenerateSessionKeysSCP01(byte[] cardResponse)
     {
         var sessionKeySet = new KeySet();
@@ -255,15 +268,20 @@ public class Session
 
         sessionKeySet.EncKey = new DesKey(
             CryptoUtil.TripleDESECB(
-                new DesKey(mStaticKeys.EncKey.BuildTripleDesKey()), derivationData, CryptoUtil.MODE_ENCRYPT));
+                new DesKey(mStaticKeys.EncKey.BuildTripleDesKey()), derivationData, CryptoUtil.ModeEncrypt));
         sessionKeySet.MacKey = new DesKey(
             CryptoUtil.TripleDESECB(
-                new DesKey(mStaticKeys.MacKey.BuildTripleDesKey()), derivationData, CryptoUtil.MODE_ENCRYPT));
+                new DesKey(mStaticKeys.MacKey.BuildTripleDesKey()), derivationData, CryptoUtil.ModeEncrypt));
         sessionKeySet.KekKey = new DesKey(mStaticKeys.KekKey.Value);
 
         return sessionKeySet;
     }
 
+    /// <summary>
+    /// Generate the required session keys for SCP02
+    /// </summary>
+    /// <param name="sequenceCounter"></param>
+    /// <returns></returns>
     private KeySet GenerateSessionKeysSCP02(byte[] sequenceCounter)
     {
         var sessionKeySet = new KeySet();
@@ -275,36 +293,129 @@ public class Session
         // Todo: consider implicit case
 
         // Derive session MAC key
-        Array.Copy(CONSTANT_MAC_0101, 0, derivationData, 0, 2);
+        Array.Copy(ConstantMac0101, 0, derivationData, 0, 2);
         sessionKeySet.MacKey = new DesKey(
             CryptoUtil.TripleDESCBC(
-                new DesKey(mStaticKeys.MacKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK, derivationData,
-                CryptoUtil.MODE_ENCRYPT));
+                new DesKey(mStaticKeys.MacKey.BuildTripleDesKey()), CryptoUtil.BinaryZeros8ByteBlock, derivationData,
+                CryptoUtil.ModeEncrypt));
 
         // Derive session R-MAC key
         // To build R-MAC key static MAC key is used.
-        Array.Copy(CONSTANT_RMAC_0102, 0, derivationData, 0, 2);
+        Array.Copy(ConstantRMac0102, 0, derivationData, 0, 2);
         sessionKeySet.RmacKey = new DesKey(
             CryptoUtil.TripleDESCBC(
-                new DesKey(mStaticKeys.MacKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK, derivationData,
-                CryptoUtil.MODE_ENCRYPT));
+                new DesKey(mStaticKeys.MacKey.BuildTripleDesKey()), CryptoUtil.BinaryZeros8ByteBlock, derivationData,
+                CryptoUtil.ModeEncrypt));
 
         // Derive session ENC key
-        Array.Copy(CONSTANT_ENC_0182, 0, derivationData, 0, 2);
+        Array.Copy(ConstantEnc0182, 0, derivationData, 0, 2);
         sessionKeySet.EncKey = new DesKey(
             CryptoUtil.TripleDESCBC(
-                new DesKey(mStaticKeys.EncKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK, derivationData,
-                CryptoUtil.MODE_ENCRYPT));
+                new DesKey(mStaticKeys.EncKey.BuildTripleDesKey()), CryptoUtil.BinaryZeros8ByteBlock, derivationData,
+                CryptoUtil.ModeEncrypt));
 
         // Derive session KEK key
-        Array.Copy(CONSTANT_DEK_0181, 0, derivationData, 0, 2);
+        Array.Copy(ConstantDek0181, 0, derivationData, 0, 2);
         sessionKeySet.KekKey = new DesKey(
             CryptoUtil.TripleDESCBC(
-                new DesKey(mStaticKeys.KekKey.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK, derivationData,
-                CryptoUtil.MODE_ENCRYPT));
+                new DesKey(mStaticKeys.KekKey.BuildTripleDesKey()), CryptoUtil.BinaryZeros8ByteBlock, derivationData,
+                CryptoUtil.ModeEncrypt));
 
 
         return sessionKeySet;
+    }
+    
+    /// <summary>
+    /// Generate the required session keys for SCP03
+    /// </summary>
+    /// <param name="initUpdateResponse">Response from InitializeUpdate</param>
+    /// <returns>Keyset</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private KeySet GenerateSessionKeysSCP03(byte[] initUpdateResponse)
+    {
+        // Copy required data from the response
+        var diversificationData = new byte[10];
+        Array.Copy(initUpdateResponse, 0x00, diversificationData, 0, 0x0A);
+        
+        var keyInfo = new byte[3];
+        Array.Copy(initUpdateResponse, 0x0A, keyInfo, 0, 0x03);
+        
+        var cardChallenge = new byte[8];
+        Array.Copy(initUpdateResponse, 0x0C, cardChallenge, 0, 0x08);
+        
+        var cardCryptogram = new byte[8];
+        Array.Copy(initUpdateResponse, 0x14, cardCryptogram, 0, 0x08);
+        
+        var sequenceCounter = new byte[2];
+        Array.Copy(initUpdateResponse, 0x0C, sequenceCounter, 0, 0x02);
+        
+        // Validate the key information
+        if (!ValidateScp03KeyInfo(keyInfo))
+            throw new Exception("Invalid key information for SCP03.");
+        
+        // We need the host challenge to generate the session keys
+        if (HostChallenge == null)
+            throw new Exception("Host challenge must be set before generating session keys.");
+        
+        // Derive the session keys
+        // GPC 2.2, Appendix D, 6.2.1: AES Session Keys
+        // AES session keys shall be generated every time a Secure Channel is initiated and are used in the mutual 
+        // authentication process
+        // The session keys are derived from the static Secure Channel keys. The encryption key S-ENC is derived 
+        // from Key-ENC. The Secure Channel MAC key S-MAC is derived from Key-MAC. Optionally (if the “i” 
+        // parameter indicates R-MAC support), the Secure Channel R-MAC key S-RMAC is derived from Key-MAC. No AES session keys are generated for key and sensitive data encryption operations. That allows 
+        // pre-processed data loading and simplifies the personalization process.
+        var sessionKeys = new KeySet();
+        
+        // Ensure that the required keys exist
+        if (mStaticKeys.EncKey == null || mStaticKeys.MacKey == null)
+            throw new Exception("All keys must be provided.");
+        
+        // Ensure that all keys are the same length
+        var encKeyLength = mStaticKeys.EncKey.Value.Length;
+        var macKeyLength = mStaticKeys.MacKey.Value.Length;
+        if (encKeyLength != macKeyLength)
+            throw new Exception("All keys must be the same length.");
+        
+        // Derive the three session keys: S-ENC, S-MAC, and S-RMAC
+        // GPC 2.2 6.2.1:
+        // "The “context“ parameter shall be set to the concatenation of the host challenge (8 bytes) and the card 
+        // challenge (8 bytes)."
+        var context = new byte[16];
+        Array.Copy(HostChallenge, 0, context, 0, 8);
+        Array.Copy(cardChallenge, 0, context, 8, 8);
+        
+        // Derive the session keys
+        var sEncKey = Scp03.Kdf(mStaticKeys.EncKey, context);
+        var sMacKey = Scp03.Kdf(mStaticKeys.MacKey, context);
+        var sRMacKey = Scp03.Kdf(mStaticKeys.MacKey, context, Scp03.COUNTER_SECOND_ITERATION);
+        
+        // Set the session keys
+        sessionKeys.EncKey = new AesKey(sEncKey.Value);
+        sessionKeys.MacKey = new AesKey(sMacKey.Value);
+        sessionKeys.RmacKey = new AesKey(sRMacKey.Value);
+        
+        return sessionKeys;
+    }
+
+    /// <summary>
+    /// Validate the key information for SCP03
+    /// </summary>
+    /// <param name="keyInfo"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    private static bool ValidateScp03KeyInfo(byte[] keyInfo)
+    {
+        // Check the length of the key information
+        if (keyInfo.Length != 3)
+            return false;
+        
+        // Check the key version number
+        if (keyInfo[OFFSET_KEY_INFO_SCP_VERSION] != SCP_03)
+            return false;
+
+        // Check the implementation option for SCP03 (bits 5, 6, and 7 only)
+        return keyInfo[OFFSET_KEY_INFO_IMPL] is IMPL_OPTION_I_00 or IMPL_OPTION_I_10 or IMPL_OPTION_I_20 or IMPL_OPTION_I_30 or IMPL_OPTION_I_60 or IMPL_OPTION_I_70;
     }
 
     private byte[] EncodeKeyData(DesKey key, DesKey kek, bool addKCV, int keyFormat)
@@ -313,12 +424,12 @@ public class Session
         if (keyFormat == KEY_FORMAT_1)
         {
             // Key encryption algorithm
-            keyData.WriteByte(CryptoUtil.ALG_DES);
+            keyData.WriteByte(CryptoUtil.AlgDes);
 
             // Encrypted key data length
             keyData.WriteByte(0x10);
 
-            var encryptedKey = CryptoUtil.TripleDESECB(kek, key.Value, CryptoUtil.MODE_ENCRYPT);
+            var encryptedKey = CryptoUtil.TripleDESECB(kek, key.Value, CryptoUtil.ModeEncrypt);
             keyData.Write(encryptedKey, 0, encryptedKey.Length);
 
             if (addKCV)
@@ -328,7 +439,7 @@ public class Session
 
                 // Calculate KCV
                 var kcv = CryptoUtil.TripleDESECB(
-                    new DesKey(key.BuildTripleDesKey()), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK, CryptoUtil.MODE_ENCRYPT);
+                    new DesKey(key.BuildTripleDesKey()), CryptoUtil.BinaryZeros8ByteBlock, CryptoUtil.ModeEncrypt);
                 keyData.Write(kcv, 0, 3);
             }
             else
@@ -339,10 +450,6 @@ public class Session
 
         return keyData.ToArray();
     }
-
-    #endregion
-
-    #region Public Methods
 
     /// <summary>
     ///     Generates INITIALIZE UPDATE command with specified static key set.
@@ -366,6 +473,10 @@ public class Session
     public CommandAPDU CreateInitUpdateCommand(KeySet staticKeySet, int securityLevel, int scpIdentifier = SCP_ANY,
         int scpImplementationOption = IMPL_OPTION_ANY)
     {
+#if DEBUG
+        Log.Debug("Creating INITIALIZE UPDATE command.");
+#endif
+        
         // Validate Secure Channel Identifier
         if (scpIdentifier != SCP_01 && scpIdentifier != SCP_02 && scpIdentifier != SCP_03 && scpIdentifier != SCP_ANY)
             throw new Exception(
@@ -413,7 +524,6 @@ public class Session
                     "Invalid implementation option for SCP03.  See GlobalPlatform Secure Channel Protocol '03' - Public Release v1.1.2");
         }
 
-
         mSCPIdentifier = scpIdentifier;
         mSCPImplementationOption = scpImplementationOption;
         mStaticKeys = staticKeySet;
@@ -426,18 +536,18 @@ public class Session
             throw new Exception(
                 "Invalid security level. See Global Platform 2.1.1 Card Spec section E.5.2.3 or section D.4.2.3.");
 
-        // Host challenge
-        if (HostChallenge == null)
-        {
-            HostChallenge = new byte[8];
-            var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(HostChallenge);
-        }
+        // If we already have the host challenge, we don't need to generate another
+        if (HostChallenge != null)
+            return new CommandAPDU(
+                CLA_GP, INS_INIT_UPDATE, staticKeySet.KeyVersion, staticKeySet.KeyId, HostChallenge, 0x00);
+        
+        HostChallenge = new byte[8];
+        var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(HostChallenge);
 
         // Build INITIALIZE UPDATE command
-        var initUpdate = new CommandAPDU(
+        return new CommandAPDU(
             CLA_GP, INS_INIT_UPDATE, staticKeySet.KeyVersion, staticKeySet.KeyId, HostChallenge, 0x00);
-        return initUpdate;
     }
 
     /// <summary>
@@ -478,7 +588,12 @@ public class Session
         };
         return validSecurityLevel;
     }
-    
+
+    /// <summary>
+    /// Process the response of INITIALIZE UPDATE command.
+    /// </summary>
+    /// <param name="response"></param>
+    [PublicAPI]
     public void ProcessInitUpdateResponse(string response)
     {
         var responseApdu = new ResponseAPDU(response);
@@ -489,6 +604,7 @@ public class Session
     /// Process the response of INITIALIZE UPDATE command.
     /// </summary>
     /// <param name="responseBytes"></param>
+    [PublicAPI]
     public void ProcessInitUpdateResponse(byte[] responseBytes)
     {
         var responseApdu = new ResponseAPDU(responseBytes);
@@ -502,6 +618,11 @@ public class Session
     [PublicAPI]
     public void ProcessInitUpdateResponse(ResponseAPDU response)
     {
+#if DEBUG
+        Log.Debug("Processing INITIALIZE UPDATE response.");
+        Log.Debug("Response: " + Convert.ToHexString(response.ToByteArray()));
+#endif
+        
         // Validate the status word
         CheckResponse(response.SW1, response.SW2, "INITIALIZE UPDATE command failed.");
         
@@ -523,18 +644,20 @@ public class Session
                 _ => throw new ArgumentException("Invalid secure channel protocol identifier.")
             };
             
-            if (response.Data.Length == 28 && mSCPIdentifier is SCP_01 or SCP_02)
+            switch (response.Data.Length)
             {
-                if (mSCPImplementationOption == IMPL_OPTION_ANY)
-                    mSCPImplementationOption = mSCPIdentifier == SCP_02 ? IMPL_OPTION_I_15 : IMPL_OPTION_I_05;
-            }
-            else if (response.Data.Length is 29 or 32 && mSCPIdentifier == SCP_03)
-            {
-                // SCP03
-                mSCPImplementationOption = _InitUpdateResponse[OFFSET_IMPLEMENTATION_SCP03];
-            } else
-            {
-                throw new InvalidDataException("Invalid INITIALIZE UPDATE response length.");
+                case 28 when mSCPIdentifier is SCP_01 or SCP_02:
+                {
+                    if (mSCPImplementationOption == IMPL_OPTION_ANY)
+                        mSCPImplementationOption = mSCPIdentifier == SCP_02 ? IMPL_OPTION_I_15 : IMPL_OPTION_I_05;
+                    break;
+                }
+                case 29 or 32 when mSCPIdentifier == SCP_03:
+                    // SCP03
+                    mSCPImplementationOption = _InitUpdateResponse[OFFSET_IMPLEMENTATION_SCP03];
+                    break;
+                default:
+                    throw new InvalidDataException("Invalid INITIALIZE UPDATE response length.");
             }
         }
 
@@ -545,20 +668,23 @@ public class Session
         if (mSCPIdentifier == SCP_01)
             mSecurityLevel &= ~SecurityLevel.R_MAC;
 
-        // derive session keys
-        if (mSCPIdentifier == SCP_01)
-        {
-            mSessionKeys = GenerateSessionKeysSCP01(_InitUpdateResponse);
-        }
-        else if (mSCPIdentifier == SCP_02)
-        {
-            var sequenceCounter = new byte[2];
-            Array.Copy(_InitUpdateResponse, 12, sequenceCounter, 0, 2);
-            mSessionKeys = GenerateSessionKeysSCP02(sequenceCounter);
-        }
-        else if (mSCPIdentifier == SCP_03)
+        // Derive session keys
+        switch (mSCPIdentifier)
         {
             
+            case SCP_01:
+                mSessionKeys = GenerateSessionKeysSCP01(_InitUpdateResponse);
+                break;
+            case SCP_02:
+            {
+                var sequenceCounter = new byte[2];
+                Array.Copy(_InitUpdateResponse, 12, sequenceCounter, 0, 2);
+                mSessionKeys = GenerateSessionKeysSCP02(sequenceCounter);
+                break;
+            }
+            case SCP_03:
+                mSessionKeys = GenerateSessionKeysSCP03(_InitUpdateResponse);
+                break;
         }
 
         var memStream = new MemoryStream();
@@ -566,7 +692,7 @@ public class Session
         memStream.Write(_InitUpdateResponse, 12, 8);
 
         var calculatedCryptogram = CryptoUtil.FullTripleDESMAC(
-            mSessionKeys.RetrieveKey(SymmetricKey.KEY_TYPE_ENC), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK,
+            mSessionKeys.RetrieveKey(SymmetricKey.KEY_TYPE_ENC), CryptoUtil.BinaryZeros8ByteBlock,
             CryptoUtil.DESPad(memStream.ToArray()));
 
         var cardCryptogram = new byte[8];
@@ -585,14 +711,14 @@ public class Session
         memStream.Write(HostChallenge, 0, HostChallenge.Length);
 
         var hostCryptogram = CryptoUtil.FullTripleDESMAC(
-            mSessionKeys.RetrieveKey(SymmetricKey.KEY_TYPE_ENC), CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK,
+            mSessionKeys.RetrieveKey(SymmetricKey.KEY_TYPE_ENC), CryptoUtil.BinaryZeros8ByteBlock,
             CryptoUtil.DESPad(memStream.ToArray()));
         var P1 = mSecurityLevel;
 
         var externalAuth = new CommandAPDU(CLA_SECURE_GP, INS_EXT_AUTH, P1, 0x00, hostCryptogram);
         SecureChannel = new SecureChannel(
             mSessionKeys, SecurityLevel.C_MAC, mSCPIdentifier, mSCPImplementationOption,
-            CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK, CryptoUtil.BINARY_ZEROS_8_BYTE_BLOCK);
+            CryptoUtil.BinaryZeros8ByteBlock, CryptoUtil.BinaryZeros8ByteBlock);
         externalAuth = SecureChannel.wrap(externalAuth);
         return externalAuth;
     }
@@ -667,6 +793,4 @@ public class Session
         putKeyCommand = SecureChannel.wrap(putKeyCommand);
         return putKeyCommand;
     }
-
-    #endregion
 }

@@ -6,7 +6,7 @@ using NUnit.Framework;
 namespace Globalplatform.Net.Tests;
 
 [TestFixture]
-public class Scp03Test
+public class Scp03Tests
 {
     /// <summary>
     /// Expected response for the Init Update command
@@ -67,8 +67,11 @@ public class Scp03Test
         const string sequenceCounter = "010203";
         const string swSuccess = "9000";
         
-        // TODO: Implement the card cryptogram
         const string cardCryptogram = "0000000000000000";
+        
+        // Start the session
+        var initUpdateData =
+            gpSession.CreateInitUpdateCommand(keySet, securityLevel, Session.SCP_03, Session.IMPL_OPTION_I_70);
         
         const string initUpdateResponseHex = $"{FIXED_CARD_DIVERSIFICATION_DATA}{keyVersionNumber}{scpVersion}{scpIParameter}{FIXED_CARD_CHALLENGE}{cardCryptogram}{sequenceCounter}{swSuccess}";
         
